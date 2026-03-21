@@ -4,6 +4,8 @@ from .materials import router as materials_router
 from .inventory import router as inventory_router
 from .sales import router as sales_router
 from .purchase import router as purchase_router
+from .production import router as production_router
+from .quality import router as quality_router
 
 __all__ = [
     "auth_router",
@@ -12,4 +14,6 @@ __all__ = [
     "inventory_router",
     "sales_router",
     "purchase_router",
+    "production_router",
+    "quality_router",
 ]

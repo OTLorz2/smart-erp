@@ -146,6 +146,83 @@ const routes: RouteRecordRaw[] = [
         path: 'purchase/receives',
         name: 'PurchaseReceives',
         component: () => import('@/views/purchase/Receives.vue')
+      },
+      // Production
+      {
+        path: 'production/boms',
+        name: 'ProductionBOMs',
+        component: () => import('@/views/production/BOMs.vue')
+      },
+      {
+        path: 'production/bom-form',
+        name: 'BOMForm',
+        component: () => import('@/views/production/BOMForm.vue')
+      },
+      {
+        path: 'production/bom-form/:id',
+        name: 'BOMFormEdit',
+        component: () => import('@/views/production/BOMForm.vue')
+      },
+      {
+        path: 'production/routes',
+        name: 'ProcessRoutes',
+        component: () => import('@/views/production/Routes.vue')
+      },
+      {
+        path: 'production/route-form',
+        name: 'RouteForm',
+        component: () => import('@/views/production/RouteForm.vue')
+      },
+      {
+        path: 'production/route-form/:id',
+        name: 'RouteFormEdit',
+        component: () => import('@/views/production/RouteForm.vue')
+      },
+      {
+        path: 'production/orders',
+        name: 'ProductionOrders',
+        component: () => import('@/views/production/Orders.vue')
+      },
+      {
+        path: 'production/order-form',
+        name: 'ProductionOrderForm',
+        component: () => import('@/views/production/OrderForm.vue')
+      },
+      {
+        path: 'production/order-form/:id',
+        name: 'ProductionOrderFormEdit',
+        component: () => import('@/views/production/OrderForm.vue')
+      },
+      // Quality
+      {
+        path: 'quality/standards',
+        name: 'QCStandards',
+        component: () => import('@/views/quality/Standards.vue')
+      },
+      {
+        path: 'quality/records',
+        name: 'QCRecords',
+        component: () => import('@/views/quality/QCRecords.vue')
+      },
+      {
+        path: 'quality/record-form',
+        name: 'QCRecordForm',
+        component: () => import('@/views/quality/QCRecordForm.vue')
+      },
+      {
+        path: 'quality/record-form/:id',
+        name: 'QCRecordFormEdit',
+        component: () => import('@/views/quality/QCRecordForm.vue')
+      },
+      {
+        path: 'quality/unqualified',
+        name: 'UnqualifiedRecords',
+        component: () => import('@/views/quality/Unqualified.vue')
+      },
+      {
+        path: 'quality/trace',
+        name: 'QualityTrace',
+        component: () => import('@/views/quality/Trace.vue')
       }
     ]
   }

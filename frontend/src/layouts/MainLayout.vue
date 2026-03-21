@@ -57,6 +57,27 @@
           <el-menu-item index="/purchase/orders">采购订单</el-menu-item>
           <el-menu-item index="/purchase/receives">入库管理</el-menu-item>
         </el-sub-menu>
+
+        <el-sub-menu index="production">
+          <template #title>
+            <el-icon><CPU /></el-icon>
+            <span>生产管理</span>
+          </template>
+          <el-menu-item index="/production/boms">BOM配方</el-menu-item>
+          <el-menu-item index="/production/routes">工艺路线</el-menu-item>
+          <el-menu-item index="/production/orders">生产工单</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="quality">
+          <template #title>
+            <el-icon><CircleCheck /></el-icon>
+            <span>质量管理</span>
+          </template>
+          <el-menu-item index="/quality/standards">质检标准</el-menu-item>
+          <el-menu-item index="/quality/records">质检记录</el-menu-item>
+          <el-menu-item index="/quality/unqualified">不良品管理</el-menu-item>
+          <el-menu-item index="/quality/trace">质量追溯</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -82,7 +103,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { House, Setting, Box, ShoppingCart, ShoppingBag } from '@element-plus/icons-vue'
+import { House, Setting, Box, ShoppingCart, ShoppingBag, CPU, CircleCheck } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

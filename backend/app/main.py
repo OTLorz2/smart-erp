@@ -6,7 +6,7 @@ import uvicorn
 
 from .core.config import settings
 from .core.database import Base, engine
-from .api import auth_router, users_router, materials_router, inventory_router, sales_router, purchase_router
+from .api import auth_router, users_router, materials_router, inventory_router, sales_router, purchase_router, production_router, quality_router
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -35,6 +35,8 @@ app.include_router(materials_router, prefix=settings.API_V1_PREFIX)
 app.include_router(inventory_router, prefix=settings.API_V1_PREFIX)
 app.include_router(sales_router, prefix=settings.API_V1_PREFIX)
 app.include_router(purchase_router, prefix=settings.API_V1_PREFIX)
+app.include_router(production_router, prefix=settings.API_V1_PREFIX)
+app.include_router(quality_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

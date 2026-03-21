@@ -3,8 +3,8 @@ from .base_data import Material, MaterialCategory, Warehouse, Supplier, Customer
 from .inventory import InventoryRecord, InventoryRecordType, WarehouseStock, AuditLog
 from .sales import SalesOrder, SalesOrderItem, SalesOrderStatus
 from .purchase import PurchaseOrder, PurchaseOrderItem, PurchaseOrderStatus
-from .production import ProductionOrder, ProductionOrderItem, ProductionRecord, ProductionOrderStatus
-from .quality import QCRecord, QCStatus, QCType
+from .production import ProductionOrder, ProductionOrderItem, ProductionRecord, ProductionOrderStatus, BOM, BOMItem, BOMStatus, ProcessRoute, ProcessStep, ProcessRouteStatus
+from .quality import QCRecord, QCStatus, QCType, QCStandard, UnqualifiedRecord, DispositionType
 
 __all__ = [
     # User
@@ -34,8 +34,17 @@ __all__ = [
     "ProductionOrderItem",
     "ProductionRecord",
     "ProductionOrderStatus",
+    "BOM",
+    "BOMItem",
+    "BOMStatus",
+    "ProcessRoute",
+    "ProcessStep",
+    "ProcessRouteStatus",
     # Quality
     "QCRecord",
     "QCStatus",
     "QCType",
+    "QCStandard",
+    "UnqualifiedRecord",
+    "DispositionType",
 ]

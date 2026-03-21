@@ -80,3 +80,102 @@ class ProductionRecord(Base):
 
     def __repr__(self):
         return f"<ProductionRecord order={self.order_id} qty={self.quantity}>"
+
+
+class BOMStatus(str, enum.Enum):
+    """BOM状态"""
+    DRAFT = "draft"
+    ACTIVE = "active"
+    OBSOLETE = "obsolete"
+
+
+class BOM(Base):
+    """BOM配方主表"""
+    __tablename__ = "boms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bom_no = Column(String(50), unique=True, index=True, nullable=False)  # BOM编号
+    product_id = Column(Integer, ForeignKey("materials.id"), nullable=False)  # 产品
+    version = Column(String(20), nullable=False, default="v1")  # 版本
+    status = Column(SQLEnum(BOMStatus), default=BOMStatus.DRAFT)
+    effective_date = Column(DateTime, nullable=True)  # 生效日期
+    remark = Column(Text, nullable=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    product = relationship("Material")
+    items = relationship("BOMItem", back_populates="bom", cascade="all, delete-orphan")
+    creator = relationship("User")
+
+    def __repr__(self):
+        return f"<BOM {self.bom_no} - {self.version}>"
+
+
+class BOMItem(Base):
+    """BOM配方明细"""
+    __tablename__ = "bom_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bom_id = Column(Integer, ForeignKey("boms.id"), nullable=False)
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=False)  # 物料
+    quantity = Column(Numeric(12, 4), nullable=False)  # 用量
+    scrap_rate = Column(Numeric(5, 2), default=0)  # 损耗率%
+
+    # Relationships
+    bom = relationship("BOM", back_populates="items")
+    material = relationship("Material")
+
+    def __repr__(self):
+        return f"<BOMItem bom={self.bom_id} material={self.material_id}>"
+
+
+class ProcessRouteStatus(str, enum.Enum):
+    """工艺路线状态"""
+    DRAFT = "draft"
+    ACTIVE = "active"
+    OBSOLETE = "obsolete"
+
+
+class ProcessRoute(Base):
+    """工艺路线"""
+    __tablename__ = "process_routes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    route_no = Column(String(50), unique=True, index=True, nullable=False)  # 路线编号
+    product_id = Column(Integer, ForeignKey("materials.id"), nullable=False)  # 产品
+    version = Column(String(20), nullable=False, default="v1")  # 版本
+    status = Column(SQLEnum(ProcessRouteStatus), default=ProcessRouteStatus.DRAFT)
+    remark = Column(Text, nullable=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    product = relationship("Material")
+    steps = relationship("ProcessStep", back_populates="route", cascade="all, delete-orphan")
+    creator = relationship("User")
+
+    def __repr__(self):
+        return f"<ProcessRoute {self.route_no} - {self.version}>"
+
+
+class ProcessStep(Base):
+    """工序步骤"""
+    __tablename__ = "process_steps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    route_id = Column(Integer, ForeignKey("process_routes.id"), nullable=False)
+    step_no = Column(Integer, nullable=False)  # 工序序号
+    step_name = Column(String(100), nullable=False)  # 工序名称
+    station_id = Column(Integer, ForeignKey("materials.id"), nullable=True)  # 工站/设备
+    standard_time = Column(Numeric(10, 2), nullable=True)  # 标准工时(分钟)
+    remark = Column(Text, nullable=True)
+
+    # Relationships
+    route = relationship("ProcessRoute", back_populates="steps")
+    station = relationship("Material")
+
+    def __repr__(self):
+        return f"<ProcessStep {self.step_no} - {self.step_name}>"

@@ -89,4 +89,57 @@ export const convertPurchaseQuotation = (id: number) => api.post(`/purchase/quot
 export const login = (username: string, password: string) =>
   api.post('/auth/login', { username, password })
 
+// Production API - BOM
+export const getBOMs = (params?: any) => api.get('/production/boms', { params })
+export const getBOM = (id: number) => api.get(`/production/boms/${id}`)
+export const createBOM = (data: any) => api.post('/production/boms', data)
+export const updateBOM = (id: number, data: any) => api.put(`/production/boms/${id}`, data)
+export const deleteBOM = (id: number) => api.delete(`/production/boms/${id}`)
+export const getBOMItems = (id: number) => api.get(`/production/boms/${id}/items`)
+export const updateBOMItems = (id: number, items: any[]) => api.put(`/production/boms/${id}/items`, { items })
+
+// Production API - Routes
+export const getRoutes = (params?: any) => api.get('/production/routes', { params })
+export const getRoute = (id: number) => api.get(`/production/routes/${id}`)
+export const createRoute = (data: any) => api.post('/production/routes', data)
+export const updateRoute = (id: number, data: any) => api.put(`/production/routes/${id}`, data)
+export const deleteRoute = (id: number) => api.delete(`/production/routes/${id}`)
+export const getRouteSteps = (id: number) => api.get(`/production/routes/${id}/steps`)
+export const updateRouteSteps = (id: number, steps: any[]) => api.put(`/production/routes/${id}/steps`, { steps })
+
+// Production API - Orders
+export const getProductionOrders = (params?: any) => api.get('/production/orders', { params })
+export const getProductionOrder = (id: number) => api.get(`/production/orders/${id}`)
+export const createProductionOrder = (data: any) => api.post('/production/orders', data)
+export const updateProductionOrder = (id: number, data: any) => api.put(`/production/orders/${id}`, data)
+export const deleteProductionOrder = (id: number) => api.delete(`/production/orders/${id}`)
+export const updateProductionOrderStatus = (id: number, status: string) =>
+  api.put(`/production/orders/${id}/status`, null, { params: { status } })
+export const getProductionOrderItems = (id: number) => api.get(`/production/orders/${id}/items`)
+export const updateProductionOrderItems = (id: number, items: any[]) => api.put(`/production/orders/${id}/items`, { items })
+export const getProductionRecords = (id: number) => api.get(`/production/orders/${id}/records`)
+export const reportProduction = (id: number, data: any) => api.post(`/production/orders/${id}/report`, data)
+export const startProduction = (id: number) => api.post(`/production/orders/${id}/start`)
+export const completeProduction = (id: number) => api.post(`/production/orders/${id}/complete`)
+
+// Quality API - Standards
+export const getQCStandards = (params?: any) => api.get('/quality/standards', { params })
+export const getQCStandard = (id: number) => api.get(`/quality/standards/${id}`)
+export const createQCStandard = (data: any) => api.post('/quality/standards', data)
+export const updateQCStandard = (id: number, data: any) => api.put(`/quality/standards/${id}`, data)
+export const deleteQCStandard = (id: number) => api.delete(`/quality/standards/${id}`)
+
+// Quality API - Records
+export const getQCBRecords = (params?: any) => api.get('/quality/records', { params })
+export const getQCRecord = (id: number) => api.get(`/quality/records/${id}`)
+export const createQCRecord = (data: any) => api.post('/quality/records', data)
+export const updateQCResult = (id: number, data: any) => api.put(`/quality/records/${id}/result`, data)
+export const updateQCStatus = (id: number, status: string) => api.put(`/quality/records/${id}/status`, null, { params: { status } })
+export const getQCTrace = (id: number) => api.get(`/quality/records/${id}/trace`)
+
+// Quality API - Unqualified
+export const getUnqualified = (params?: any) => api.get('/quality/unqualified', { params })
+export const createUnqualified = (data: any) => api.post('/quality/unqualified', data)
+export const updateUnqualified = (id: number, data: any) => api.put(`/quality/unqualified/${id}`, data)
+
 export default api
