@@ -1,81 +1,89 @@
 <template>
   <div class="dashboard">
-    <h1>欢迎使用 Smart-ERP</h1>
+    <h1>经营概览</h1>
 
+    <!-- KPI Cards -->
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <el-icon class="stat-icon" color="#409eff"><Box /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.materialCount }}</div>
-              <div class="stat-label">物料总数</div>
-            </div>
-          </div>
-        </el-card>
+        <KPICard
+          :value="summary.today_sales"
+          label="今日销售"
+          :icon="Money"
+          type="currency"
+          bg-color="#409eff"
+        />
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <el-icon class="stat-icon" color="#67c23a"><ShoppingCart /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.salesOrderCount }}</div>
-              <div class="stat-label">销售订单</div>
-            </div>
-          </div>
-        </el-card>
+        <KPICard
+          :value="summary.month_sales"
+          label="本月销售"
+          :icon="TrendCharts"
+          type="currency"
+          bg-color="#67c23a"
+        />
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <el-icon class="stat-icon" color="#e6a23c"><ShoppingBag /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.purchaseOrderCount }}</div>
-              <div class="stat-label">采购订单</div>
-            </div>
-          </div>
-        </el-card>
+        <KPICard
+          :value="summary.pending_orders"
+          label="待处理订单"
+          :icon="Document"
+          type="number"
+          bg-color="#e6a23c"
+        />
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <el-icon class="stat-icon" color="#f56c6c"><Warning /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.alertCount }}</div>
-              <div class="stat-label">库存预警</div>
-            </div>
-          </div>
-        </el-card>
+        <KPICard
+          :value="summary.inventory_value"
+          label="库存价值"
+          :icon="Box"
+          type="currency"
+          bg-color="#f56c6c"
+        />
       </el-col>
     </el-row>
 
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <KPICard
+          :value="summary.low_stock_items"
+          label="库存预警"
+          :icon="Warning"
+          type="number"
+          bg-color="#909399"
+        />
+      </el-col>
+      <el-col :span="6">
+        <KPICard
+          :value="summary.pending_purchases"
+          label="待采购"
+          :icon="ShoppingBag"
+          type="number"
+          bg-color="#c71585"
+        />
+      </el-col>
+    </el-row>
+
+    <!-- Trends and Alerts -->
     <el-row :gutter="20">
       <el-col :span="12">
-        <el-card>
-          <template #header>
-            <span>快捷操作</span>
-          </template>
-          <div class="quick-actions">
-            <el-button type="primary" @click="$router.push('/materials')">新增物料</el-button>
-            <el-button type="success" @click="$router.push('/sales/orders')">新建销售订单</el-button>
-            <el-button type="warning" @click="$router.push('/purchase/orders')">新建采购订单</el-button>
-            <el-button type="info" @click="$router.push('/inventory')">库存查询</el-button>
-          </div>
-        </el-card>
+        <TrendList
+          title="销售趋势"
+          type="currency"
+          :fetch-data="fetchSalesTrends"
+        />
       </el-col>
       <el-col :span="12">
-        <el-card>
-          <template #header>
-            <span>库存预警</span>
-          </template>
-          <el-empty v-if="alerts.length === 0" description="暂无预警" />
-          <el-table v-else :data="alerts" max-height="200">
-            <el-table-column prop="material_code" label="物料编码" />
-            <el-table-column prop="material_name" label="物料名称" />
-            <el-table-column prop="current_quantity" label="当前库存" />
-            <el-table-column prop="safety_stock" label="安全库存" />
-          </el-table>
-        </el-card>
+        <AlertList
+          title="预警提醒"
+          :fetch-alerts="fetchAlerts"
+        />
+      </el-col>
+    </el-row>
+
+    <!-- Quick Actions -->
+    <el-row :gutter="20" style="margin-top: 20px;">
+      <el-col :span="24">
+        <QuickActions />
       </el-col>
     </el-row>
   </div>
@@ -83,34 +91,48 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import api from '@/api'
-import { Box, ShoppingCart, ShoppingBag, Warning } from '@element-plus/icons-vue'
+import { Money, TrendCharts, Document, Box, Warning, ShoppingBag } from '@element-plus/icons-vue'
+import { getDashboardSummary, getDashboardTrends, getDashboardAlerts } from '@/api'
+import KPICard from '@/components/stats/KPICard.vue'
+import TrendList from '@/components/stats/TrendList.vue'
+import AlertList from '@/components/stats/AlertList.vue'
+import QuickActions from '@/components/stats/QuickActions.vue'
 
-const stats = ref({
-  materialCount: 0,
-  salesOrderCount: 0,
-  purchaseOrderCount: 0,
-  alertCount: 0
+const summary = ref({
+  today_sales: 0,
+  month_sales: 0,
+  pending_orders: 0,
+  inventory_value: 0,
+  low_stock_items: 0,
+  pending_purchases: 0
 })
 
-const alerts = ref<any[]>([])
+const fetchSalesTrends = async (days: number) => {
+  try {
+    const response = await getDashboardTrends(days)
+    return response.data.sales || []
+  } catch (error) {
+    console.error('Failed to fetch sales trends:', error)
+    return []
+  }
+}
+
+const fetchAlerts = async () => {
+  try {
+    const response = await getDashboardAlerts()
+    return response.data || []
+  } catch (error) {
+    console.error('Failed to fetch alerts:', error)
+    return []
+  }
+}
 
 onMounted(async () => {
   try {
-    const [materialsRes, salesRes, purchaseRes, alertsRes] = await Promise.all([
-      api.get('/base-data/materials?limit=1'),
-      api.get('/sales/orders?limit=1'),
-      api.get('/purchase/orders?limit=1'),
-      api.get('/inventory/alerts')
-    ])
-
-    stats.value.materialCount = materialsRes.data.length || 0
-    stats.value.salesOrderCount = salesRes.data.length || 0
-    stats.value.purchaseOrderCount = purchaseRes.data.length || 0
-    stats.value.alertCount = alertsRes.data.length || 0
-    alerts.value = alertsRes.data
+    const response = await getDashboardSummary()
+    summary.value = response.data
   } catch (error) {
-    console.error('Failed to load dashboard data:', error)
+    console.error('Failed to load dashboard summary:', error)
   }
 })
 </script>
@@ -123,32 +145,5 @@ onMounted(async () => {
 
 .stats-row {
   margin-bottom: 20px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.stat-icon {
-  font-size: 40px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-}
-
-.stat-label {
-  color: #999;
-  font-size: 14px;
-}
-
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 </style>

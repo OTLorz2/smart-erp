@@ -223,6 +223,32 @@ const routes: RouteRecordRaw[] = [
         path: 'quality/trace',
         name: 'QualityTrace',
         component: () => import('@/views/quality/Trace.vue')
+      },
+      // Reports
+      {
+        path: 'reports/inventory',
+        name: 'InventoryReport',
+        component: () => import('@/views/reports/InventoryReport.vue')
+      },
+      {
+        path: 'reports/sales',
+        name: 'SalesReport',
+        component: () => import('@/views/reports/SalesReport.vue')
+      },
+      {
+        path: 'reports/purchase',
+        name: 'PurchaseReport',
+        component: () => import('@/views/reports/PurchaseReport.vue')
+      },
+      {
+        path: 'reports/production',
+        name: 'ProductionReport',
+        component: () => import('@/views/reports/ProductionReport.vue')
+      },
+      {
+        path: 'reports/quality',
+        name: 'QualityReport',
+        component: () => import('@/views/reports/QualityReport.vue')
       }
     ]
   }

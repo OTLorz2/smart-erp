@@ -142,4 +142,47 @@ export const getUnqualified = (params?: any) => api.get('/quality/unqualified', 
 export const createUnqualified = (data: any) => api.post('/quality/unqualified', data)
 export const updateUnqualified = (id: number, data: any) => api.put(`/quality/unqualified/${id}`, data)
 
+// Reports API - Export/Import
+export const exportData = (dataType: string, format: string = 'excel') =>
+  api.get('/reports/export', { params: { data_type: dataType, format }, responseType: 'blob' })
+
+export const downloadTemplate = (dataType: string) =>
+  api.get(`/reports/export/template/${dataType}`, { responseType: 'blob' })
+
+export const validateImport = (file: FormData, dataType: string) =>
+  api.post('/reports/import/validate', file, { params: { data_type: dataType } })
+
+// Reports API - Dashboard
+export const getDashboardSummary = () => api.get('/reports/dashboard/summary')
+export const getDashboardTrends = (days: number = 7) => api.get('/reports/dashboard/trends', { params: { days } })
+export const getDashboardAlerts = () => api.get('/reports/dashboard/alerts')
+
+// Reports API - Inventory
+export const getInventorySummary = () => api.get('/reports/inventory/summary')
+export const getInventoryAlerts = () => api.get('/reports/inventory/alerts')
+
+// Reports API - Sales
+export const getSalesSummary = (params?: any) => api.get('/reports/sales/summary', { params })
+export const getSalesByCustomer = () => api.get('/reports/sales/by-customer')
+export const getSalesByProduct = () => api.get('/reports/sales/by-product')
+
+// Reports API - Purchase
+export const getPurchaseSummary = (params?: any) => api.get('/reports/purchase/summary', { params })
+export const getPurchaseBySupplier = () => api.get('/reports/purchase/by-supplier')
+
+// Reports API - Production
+export const getProductionSummary = () => api.get('/reports/production/summary')
+export const getProductionEfficiency = () => api.get('/reports/production/efficiency')
+
+// Reports API - Quality
+export const getQualitySummary = () => api.get('/reports/quality/summary')
+export const getQualityDefects = () => api.get('/reports/quality/defects')
+
+// Notifications API
+export const getNotifications = (params?: any) => api.get('/notifications', { params })
+export const getUnreadCount = () => api.get('/notifications/unread-count')
+export const markAsRead = (id: number) => api.put(`/notifications/${id}/read`)
+export const markAllAsRead = () => api.put('/notifications/read-all')
+export const deleteNotification = (id: number) => api.delete(`/notifications/${id}`)
+
 export default api
