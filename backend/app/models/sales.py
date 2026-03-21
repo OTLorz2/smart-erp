@@ -6,6 +6,15 @@ import enum
 from ..core.database import Base
 
 
+class QuotationStatus(str, enum.Enum):
+    """报价单状态"""
+    DRAFT = "draft"
+    SENT = "sent"
+    CONFIRMED = "confirmed"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
 class SalesOrderStatus(str, enum.Enum):
     """销售订单状态"""
     DRAFT = "draft"           # 草稿
@@ -14,6 +23,41 @@ class SalesOrderStatus(str, enum.Enum):
     SHIPPED = "shipped"       # 已发货
     COMPLETED = "completed"   # 已完成
     CANCELLED = "cancelled"   # 已取消
+
+
+class SalesQuotation(Base):
+    """销售报价单"""
+    __tablename__ = "sales_quotations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quote_no = Column(String(50), unique=True, index=True, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    quote_date = Column(DateTime, default=datetime.utcnow)
+    valid_date = Column(DateTime, nullable=True)
+    total_amount = Column(Numeric(12, 2), default=0)
+    status = Column(SQLEnum(QuotationStatus), default=QuotationStatus.DRAFT)
+    remark = Column(Text, nullable=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    customer = relationship("Customer", back_populates="sales_quotations")
+    items = relationship("SalesQuotationItem", back_populates="quote", cascade="all, delete-orphan")
+    creator = relationship("User")
+
+
+class SalesQuotationItem(Base):
+    """报价单明细"""
+    __tablename__ = "sales_quotation_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quote_id = Column(Integer, ForeignKey("sales_quotations.id"), nullable=False)
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=False)
+    quantity = Column(Numeric(12, 2), nullable=False)
+    unit_price = Column(Numeric(12, 2), nullable=False)
+    total_price = Column(Numeric(12, 2), nullable=False)
+
+    quote = relationship("SalesQuotation", back_populates="items")
+    material = relationship("Material")
 
 
 class SalesOrder(Base):

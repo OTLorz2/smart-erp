@@ -79,6 +79,7 @@ class Supplier(Base):
 
     # Relationships
     purchase_orders = relationship("PurchaseOrder", back_populates="supplier")
+    purchase_quotations = relationship("PurchaseQuotation", back_populates="supplier")
 
     def __repr__(self):
         return f"<Supplier {self.code} - {self.name}>"
@@ -101,6 +102,7 @@ class Customer(Base):
 
     # Relationships
     sales_orders = relationship("SalesOrder", back_populates="customer")
+    sales_quotations = relationship("SalesQuotation", back_populates="customer")
 
     def __repr__(self):
         return f"<Customer {self.code} - {self.name}>"

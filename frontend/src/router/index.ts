@@ -50,17 +50,102 @@ const routes: RouteRecordRaw[] = [
         name: 'Inventory',
         component: () => import('@/views/inventory/InventoryList.vue')
       },
+      {
+        path: 'inventory/records',
+        name: 'InventoryRecords',
+        component: () => import('@/views/inventory/Records.vue')
+      },
+      {
+        path: 'inventory/record-form',
+        name: 'RecordForm',
+        component: () => import('@/views/inventory/RecordForm.vue')
+      },
+      {
+        path: 'inventory/record-form/:id',
+        name: 'RecordFormEdit',
+        component: () => import('@/views/inventory/RecordForm.vue')
+      },
+      {
+        path: 'inventory/check',
+        name: 'StockCheck',
+        component: () => import('@/views/inventory/StockCheck.vue')
+      },
+      {
+        path: 'inventory/alerts',
+        name: 'StockAlerts',
+        component: () => import('@/views/inventory/Alerts.vue')
+      },
       // Sales
       {
         path: 'sales/orders',
         name: 'SalesOrders',
         component: () => import('@/views/sales/Orders.vue')
       },
+      {
+        path: 'sales/order-form',
+        name: 'SalesOrderForm',
+        component: () => import('@/views/sales/OrderForm.vue')
+      },
+      {
+        path: 'sales/order-form/:id',
+        name: 'SalesOrderFormEdit',
+        component: () => import('@/views/sales/OrderForm.vue')
+      },
+      {
+        path: 'sales/quotations',
+        name: 'SalesQuotations',
+        component: () => import('@/views/sales/Quotations.vue')
+      },
+      {
+        path: 'sales/quotation-form',
+        name: 'SalesQuotationForm',
+        component: () => import('@/views/sales/QuotationForm.vue')
+      },
+      {
+        path: 'sales/quotation-form/:id',
+        name: 'SalesQuotationFormEdit',
+        component: () => import('@/views/sales/QuotationForm.vue')
+      },
+      {
+        path: 'sales/shipments',
+        name: 'SalesShipments',
+        component: () => import('@/views/sales/Shipments.vue')
+      },
       // Purchase
       {
         path: 'purchase/orders',
         name: 'PurchaseOrders',
         component: () => import('@/views/purchase/Orders.vue')
+      },
+      {
+        path: 'purchase/order-form',
+        name: 'PurchaseOrderForm',
+        component: () => import('@/views/purchase/OrderForm.vue')
+      },
+      {
+        path: 'purchase/order-form/:id',
+        name: 'PurchaseOrderFormEdit',
+        component: () => import('@/views/purchase/OrderForm.vue')
+      },
+      {
+        path: 'purchase/quotations',
+        name: 'PurchaseQuotations',
+        component: () => import('@/views/purchase/Quotations.vue')
+      },
+      {
+        path: 'purchase/quotation-form',
+        name: 'PurchaseQuotationForm',
+        component: () => import('@/views/purchase/QuotationForm.vue')
+      },
+      {
+        path: 'purchase/quotation-form/:id',
+        name: 'PurchaseQuotationFormEdit',
+        component: () => import('@/views/purchase/QuotationForm.vue')
+      },
+      {
+        path: 'purchase/receives',
+        name: 'PurchaseReceives',
+        component: () => import('@/views/purchase/Receives.vue')
       }
     ]
   }

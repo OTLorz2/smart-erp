@@ -12,6 +12,7 @@ from ..models.inventory import InventoryRecord, InventoryRecordType, WarehouseSt
 from ..schemas.inventory import (
     InventoryRecordCreate, InventoryRecordResponse,
     StockResponse, StockAlertResponse,
+    StockCheckRequest, StockCheckResponse,
 )
 from ..models.base_data import Material, Warehouse
 
@@ -188,3 +189,174 @@ def get_stock_alerts(
         )
         for rs in results
     ]
+
+
+@router.get("/records/{record_id}", response_model=InventoryRecordResponse)
+def get_inventory_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """获取单条出入库记录详情"""
+    record = db.query(InventoryRecord).filter(InventoryRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return record
+
+
+@router.put("/records/{record_id}", response_model=InventoryRecordResponse)
+def update_inventory_record(
+    record_id: int,
+    record_data: InventoryRecordCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """更新出入库记录"""
+    record = db.query(InventoryRecord).filter(InventoryRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="记录不存在")
+
+    # Validate material and warehouse exist
+    material = db.query(Material).filter(Material.id == record_data.material_id).first()
+    if not material:
+        raise HTTPException(status_code=404, detail="物料不存在")
+
+    warehouse = db.query(Warehouse).filter(Warehouse.id == record_data.warehouse_id).first()
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="仓库不存在")
+
+    # Calculate quantity difference for stock adjustment
+    quantity_diff = record_data.quantity - record.quantity
+
+    # Update stock if quantity changed
+    if quantity_diff != 0:
+        stock = db.query(WarehouseStock).filter(
+            WarehouseStock.material_id == record_data.material_id,
+            WarehouseStock.warehouse_id == record_data.warehouse_id
+        ).first()
+
+        if record.type in [InventoryRecordType.PURCHASE_IN, InventoryRecordType.PRODUCTION_IN, InventoryRecordType.OTHER_IN]:
+            # 入库
+            if stock:
+                stock.quantity += quantity_diff
+            else:
+                stock = WarehouseStock(
+                    material_id=record_data.material_id,
+                    warehouse_id=record_data.warehouse_id,
+                    quantity=record_data.quantity
+                )
+                db.add(stock)
+        else:
+            # 出库
+            if not stock or stock.quantity < quantity_diff:
+                raise HTTPException(status_code=400, detail="库存不足")
+            stock.quantity -= quantity_diff
+
+    # Update record
+    record.type = record_data.type
+    record.material_id = record_data.material_id
+    record.warehouse_id = record_data.warehouse_id
+    record.quantity = record_data.quantity
+    record.unit_price = record_data.unit_price
+    record.total_price = record_data.quantity * record_data.unit_price
+    record.batch_no = record_data.batch_no
+    record.remark = record_data.remark
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.delete("/records/{record_id}")
+def delete_inventory_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """删除出入库记录"""
+    record = db.query(InventoryRecord).filter(InventoryRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="记录不存在")
+
+    # Reverse stock change
+    stock = db.query(WarehouseStock).filter(
+        WarehouseStock.material_id == record.material_id,
+        WarehouseStock.warehouse_id == record.warehouse_id
+    ).first()
+
+    if record.type in [InventoryRecordType.PURCHASE_IN, InventoryRecordType.PRODUCTION_IN, InventoryRecordType.OTHER_IN]:
+        # Reverse入库
+        if stock:
+            stock.quantity -= record.quantity
+            if stock.quantity <= 0:
+                db.delete(stock)
+    else:
+        # Reverse出库
+        if stock:
+            stock.quantity += record.quantity
+
+    db.delete(record)
+    db.commit()
+    return {"message": "记录已删除"}
+
+
+@router.get("/stocks/{material_id}/{warehouse_id}")
+def get_stock_by_material_warehouse(
+    material_id: int,
+    warehouse_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """获取特定物料仓库的库存"""
+    stock = db.query(WarehouseStock).filter(
+        WarehouseStock.material_id == material_id,
+        WarehouseStock.warehouse_id == warehouse_id
+    ).first()
+
+    if not stock:
+        raise HTTPException(status_code=404, detail="库存记录不存在")
+
+    material = db.query(Material).filter(Material.id == material_id).first()
+    warehouse = db.query(Warehouse).filter(Warehouse.id == warehouse_id).first()
+
+    return {
+        "material_id": stock.material_id,
+        "material_code": material.code if material else "",
+        "material_name": material.name if material else "",
+        "warehouse_id": stock.warehouse_id,
+        "warehouse_name": warehouse.name if warehouse else "",
+        "quantity": stock.quantity
+    }
+
+
+@router.post("/check", response_model=List[StockCheckResponse])
+def check_stock(
+    check_data: List[StockCheckRequest],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """库存盘点"""
+    results = []
+    for item in check_data:
+        stock = db.query(WarehouseStock).filter(
+            WarehouseStock.material_id == item.material_id,
+            WarehouseStock.warehouse_id == item.warehouse_id
+        ).first()
+
+        material = db.query(Material).filter(Material.id == item.material_id).first()
+        warehouse = db.query(Warehouse).filter(Warehouse.id == item.warehouse_id).first()
+
+        system_qty = stock.quantity if stock else 0
+        diff = item.actual_quantity - system_qty
+
+        results.append(StockCheckResponse(
+            material_id=item.material_id,
+            material_code=material.code if material else "",
+            material_name=material.name if material else "",
+            warehouse_name=warehouse.name if warehouse else "",
+            system_quantity=system_qty,
+            actual_quantity=item.actual_quantity,
+            difference=diff
+        ))
+
+    return results

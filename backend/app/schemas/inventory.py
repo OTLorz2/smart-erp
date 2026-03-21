@@ -54,3 +54,20 @@ class StockAlertResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Stock check schemas
+class StockCheckRequest(BaseModel):
+    material_id: int
+    warehouse_id: int
+    actual_quantity: Decimal
+
+
+class StockCheckResponse(BaseModel):
+    material_id: int
+    material_code: str
+    material_name: str
+    warehouse_name: str
+    system_quantity: Decimal
+    actual_quantity: Decimal
+    difference: Decimal

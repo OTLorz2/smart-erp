@@ -6,6 +6,15 @@ import enum
 from ..core.database import Base
 
 
+class PurchaseQuotationStatus(str, enum.Enum):
+    """采购询价单状态"""
+    DRAFT = "draft"
+    SENT = "sent"
+    REPLIED = "replied"
+    CONFIRMED = "confirmed"
+    CANCELLED = "cancelled"
+
+
 class PurchaseOrderStatus(str, enum.Enum):
     """采购订单状态"""
     DRAFT = "draft"           # 草稿
@@ -14,6 +23,41 @@ class PurchaseOrderStatus(str, enum.Enum):
     RECEIVED = "received"     # 已入库
     COMPLETED = "completed"   # 已完成
     CANCELLED = "cancelled"   # 已取消
+
+
+class PurchaseQuotation(Base):
+    """采购询价单"""
+    __tablename__ = "purchase_quotations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quote_no = Column(String(50), unique=True, index=True, nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    quote_date = Column(DateTime, default=datetime.utcnow)
+    reply_date = Column(DateTime, nullable=True)
+    total_amount = Column(Numeric(12, 2), default=0)
+    status = Column(SQLEnum(PurchaseQuotationStatus), default=PurchaseQuotationStatus.DRAFT)
+    remark = Column(Text, nullable=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    supplier = relationship("Supplier", back_populates="purchase_quotations")
+    items = relationship("PurchaseQuotationItem", back_populates="quote", cascade="all, delete-orphan")
+    creator = relationship("User")
+
+
+class PurchaseQuotationItem(Base):
+    """询价单明细"""
+    __tablename__ = "purchase_quotation_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quote_id = Column(Integer, ForeignKey("purchase_quotations.id"), nullable=False)
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=False)
+    quantity = Column(Numeric(12, 2), nullable=False)
+    unit_price = Column(Numeric(12, 2), nullable=False)
+    total_price = Column(Numeric(12, 2), nullable=False)
+
+    quote = relationship("PurchaseQuotation", back_populates="items")
+    material = relationship("Material")
 
 
 class PurchaseOrder(Base):
