@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 
 from ..core.database import get_db
@@ -52,14 +53,19 @@ def create_material(
     current_user: User = Depends(get_current_active_user)
 ):
     """创建物料"""
-    existing = db.query(Material).filter(Material.code == material_data.code).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="物料编码已存在")
-
+    # Remove check-then-set, directly attempt insert
     material = Material(**material_data.model_dump())
-    db.add(material)
-    db.commit()
-    db.refresh(material)
+    try:
+        db.add(material)
+        db.commit()
+        db.refresh(material)
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "code" in error_msg:
+            raise HTTPException(status_code=400, detail="物料编码已存在")
+        raise HTTPException(status_code=400, detail="数据重复")
+
     return material
 
 
@@ -115,14 +121,19 @@ def create_warehouse(
     current_user: User = Depends(get_current_active_user)
 ):
     """创建仓库"""
-    existing = db.query(Warehouse).filter(Warehouse.code == warehouse_data.code).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="仓库编码已存在")
-
+    # Remove check-then-set, directly attempt insert
     warehouse = Warehouse(**warehouse_data.model_dump())
-    db.add(warehouse)
-    db.commit()
-    db.refresh(warehouse)
+    try:
+        db.add(warehouse)
+        db.commit()
+        db.refresh(warehouse)
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "code" in error_msg:
+            raise HTTPException(status_code=400, detail="仓库编码已存在")
+        raise HTTPException(status_code=400, detail="数据重复")
+
     return warehouse
 
 
@@ -165,14 +176,19 @@ def create_supplier(
     current_user: User = Depends(get_current_active_user)
 ):
     """创建供应商"""
-    existing = db.query(Supplier).filter(Supplier.code == supplier_data.code).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="供应商编码已存在")
-
+    # Remove check-then-set, directly attempt insert
     supplier = Supplier(**supplier_data.model_dump())
-    db.add(supplier)
-    db.commit()
-    db.refresh(supplier)
+    try:
+        db.add(supplier)
+        db.commit()
+        db.refresh(supplier)
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "code" in error_msg:
+            raise HTTPException(status_code=400, detail="供应商编码已存在")
+        raise HTTPException(status_code=400, detail="数据重复")
+
     return supplier
 
 
@@ -195,12 +211,17 @@ def create_customer(
     current_user: User = Depends(get_current_active_user)
 ):
     """创建客户"""
-    existing = db.query(Customer).filter(Customer.code == customer_data.code).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="客户编码已存在")
-
+    # Remove check-then-set, directly attempt insert
     customer = Customer(**customer_data.model_dump())
-    db.add(customer)
-    db.commit()
-    db.refresh(customer)
+    try:
+        db.add(customer)
+        db.commit()
+        db.refresh(customer)
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "code" in error_msg:
+            raise HTTPException(status_code=400, detail="客户编码已存在")
+        raise HTTPException(status_code=400, detail="数据重复")
+
     return customer

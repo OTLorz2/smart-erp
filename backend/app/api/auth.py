@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import timedelta
 
 from ..core.config import settings
@@ -59,24 +60,7 @@ def register(
     db: Session = Depends(get_db)
 ):
     """用户注册"""
-    # Check if username exists
-    existing_user = db.query(User).filter(User.username == user_data.username).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="用户名已存在"
-        )
-
-    # Check if email exists
-    if user_data.email:
-        existing_email = db.query(User).filter(User.email == user_data.email).first()
-        if existing_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="邮箱已被使用"
-            )
-
-    # Create user
+    # Remove check-then-set, directly attempt insert
     user = User(
         username=user_data.username,
         email=user_data.email,
@@ -84,9 +68,28 @@ def register(
         role=user_data.role,
         hashed_password=get_password_hash(user_data.password)
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    except IntegrityError as e:
+        db.rollback()
+        # Determine which field is duplicated based on error message
+        error_msg = str(e.orig)
+        if "username" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户名已存在"
+            )
+        elif "email" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="邮箱已被使用"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="数据重复"
+        )
 
     return user
 

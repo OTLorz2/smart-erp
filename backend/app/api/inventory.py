@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, update
 from typing import List
 from datetime import datetime
 import uuid
@@ -88,17 +88,21 @@ def create_inventory_record(
     )
     db.add(record)
 
-    # Update stock
-    stock = db.query(WarehouseStock).filter(
-        WarehouseStock.material_id == record_data.material_id,
-        WarehouseStock.warehouse_id == record_data.warehouse_id
-    ).first()
-
+    # Atomic stock update for inbound
     if record_data.type in [InventoryRecordType.PURCHASE_IN, InventoryRecordType.PRODUCTION_IN, InventoryRecordType.OTHER_IN]:
-        #入库
-        if stock:
-            stock.quantity += record_data.quantity
-        else:
+        # Try to update existing stock atomically
+        stmt = (
+            update(WarehouseStock)
+            .where(
+                WarehouseStock.material_id == record_data.material_id,
+                WarehouseStock.warehouse_id == record_data.warehouse_id
+            )
+            .values(quantity=WarehouseStock.quantity + record_data.quantity)
+        )
+        result = db.execute(stmt)
+
+        if result.rowcount == 0:
+            # Stock record doesn't exist, create new one
             stock = WarehouseStock(
                 material_id=record_data.material_id,
                 warehouse_id=record_data.warehouse_id,
@@ -106,10 +110,20 @@ def create_inventory_record(
             )
             db.add(stock)
     else:
-        #出库
-        if not stock or stock.quantity < record_data.quantity:
+        # Atomic stock decrease for outbound - check stock availability first
+        stmt = (
+            update(WarehouseStock)
+            .where(
+                WarehouseStock.material_id == record_data.material_id,
+                WarehouseStock.warehouse_id == record_data.warehouse_id,
+                WarehouseStock.quantity >= record_data.quantity
+            )
+            .values(quantity=WarehouseStock.quantity - record_data.quantity)
+        )
+        result = db.execute(stmt)
+
+        if result.rowcount == 0:
             raise HTTPException(status_code=400, detail="库存不足")
-        stock.quantity -= record_data.quantity
 
     db.commit()
     db.refresh(record)
@@ -308,7 +322,10 @@ def get_stock_by_material_warehouse(
     current_user: User = Depends(get_current_active_user)
 ):
     """获取特定物料仓库的库存"""
-    stock = db.query(WarehouseStock).filter(
+    stock = db.query(WarehouseStock).options(
+        joinedload(WarehouseStock.material),
+        joinedload(WarehouseStock.warehouse)
+    ).filter(
         WarehouseStock.material_id == material_id,
         WarehouseStock.warehouse_id == warehouse_id
     ).first()
@@ -316,15 +333,12 @@ def get_stock_by_material_warehouse(
     if not stock:
         raise HTTPException(status_code=404, detail="库存记录不存在")
 
-    material = db.query(Material).filter(Material.id == material_id).first()
-    warehouse = db.query(Warehouse).filter(Warehouse.id == warehouse_id).first()
-
     return {
         "material_id": stock.material_id,
-        "material_code": material.code if material else "",
-        "material_name": material.name if material else "",
+        "material_code": stock.material.code if stock.material else "",
+        "material_name": stock.material.name if stock.material else "",
         "warehouse_id": stock.warehouse_id,
-        "warehouse_name": warehouse.name if warehouse else "",
+        "warehouse_name": stock.warehouse.name if stock.warehouse else "",
         "quantity": stock.quantity
     }
 
@@ -335,25 +349,37 @@ def check_stock(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """库存盘点"""
+    """库存盘点 - batch query to avoid N+1"""
+    # Extract IDs for batch query
+    material_ids = [item.material_id for item in check_data]
+    warehouse_ids = [item.warehouse_id for item in check_data]
+
+    # Batch query stocks with eager loading
+    stocks = db.query(WarehouseStock).options(
+        joinedload(WarehouseStock.material),
+        joinedload(WarehouseStock.warehouse)
+    ).filter(
+        WarehouseStock.material_id.in_(material_ids),
+        WarehouseStock.warehouse_id.in_(warehouse_ids)
+    ).all()
+
+    # Build lookup map
+    stock_map = {
+        (s.material_id, s.warehouse_id): s for s in stocks
+    }
+
     results = []
     for item in check_data:
-        stock = db.query(WarehouseStock).filter(
-            WarehouseStock.material_id == item.material_id,
-            WarehouseStock.warehouse_id == item.warehouse_id
-        ).first()
-
-        material = db.query(Material).filter(Material.id == item.material_id).first()
-        warehouse = db.query(Warehouse).filter(Warehouse.id == item.warehouse_id).first()
+        stock = stock_map.get((item.material_id, item.warehouse_id))
 
         system_qty = stock.quantity if stock else 0
         diff = item.actual_quantity - system_qty
 
         results.append(StockCheckResponse(
             material_id=item.material_id,
-            material_code=material.code if material else "",
-            material_name=material.name if material else "",
-            warehouse_name=warehouse.name if warehouse else "",
+            material_code=stock.material.code if stock and stock.material else "",
+            material_name=stock.material.name if stock and stock.material else "",
+            warehouse_name=stock.warehouse.name if stock and stock.warehouse else "",
             system_quantity=system_qty,
             actual_quantity=item.actual_quantity,
             difference=diff

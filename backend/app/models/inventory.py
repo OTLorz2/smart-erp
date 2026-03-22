@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, ForeignKey, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -45,6 +45,9 @@ class InventoryRecord(Base):
 class WarehouseStock(Base):
     """仓库库存"""
     __tablename__ = "warehouse_stocks"
+    __table_args__ = (
+        UniqueConstraint('material_id', 'warehouse_id', name='uq_stock_material_warehouse'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     material_id = Column(Integer, ForeignKey("materials.id"), nullable=False)

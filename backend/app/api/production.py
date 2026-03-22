@@ -453,6 +453,23 @@ def delete_production_order(
     return {"deleted": True}
 
 
+# Define valid state transitions for production orders
+VALID_TRANSITIONS = {
+    ProductionOrderStatus.DRAFT: [ProductionOrderStatus.PENDING, ProductionOrderStatus.CANCELLED],
+    ProductionOrderStatus.PENDING: [ProductionOrderStatus.IN_PROGRESS, ProductionOrderStatus.CANCELLED],
+    ProductionOrderStatus.IN_PROGRESS: [ProductionOrderStatus.COMPLETED, ProductionOrderStatus.QC_PASSED, ProductionOrderStatus.CANCELLED],
+    ProductionOrderStatus.QC_PASSED: [ProductionOrderStatus.COMPLETED, ProductionOrderStatus.CANCELLED],
+    ProductionOrderStatus.QC_FAILED: [ProductionOrderStatus.IN_PROGRESS, ProductionOrderStatus.CANCELLED],
+    ProductionOrderStatus.COMPLETED: [],  # Final state
+    ProductionOrderStatus.CANCELLED: [],  # Final state
+}
+
+
+def validate_status_transition(current: ProductionOrderStatus, new: ProductionOrderStatus) -> bool:
+    """Validate if status transition is allowed"""
+    return new in VALID_TRANSITIONS.get(current, [])
+
+
 @router.put("/orders/{order_id}/status")
 def update_production_order_status(
     order_id: int,
@@ -464,6 +481,13 @@ def update_production_order_status(
     order = db.query(ProductionOrder).filter(ProductionOrder.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="生产工单不存在")
+
+    # Validate state transition
+    if not validate_status_transition(order.status, status):
+        raise HTTPException(
+            status_code=400,
+            detail=f"不能从 {order.status.value} 转换到 {status.value}"
+        )
 
     order.status = status
     db.commit()

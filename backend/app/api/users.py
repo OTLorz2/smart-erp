@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 
 from ..core.database import get_db
@@ -52,24 +53,29 @@ def create_user(
     current_user: User = Depends(require_admin)
 ):
     """创建用户"""
-    # Check if username exists
-    existing = db.query(User).filter(User.username == user_data.username).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="用户名已存在")
-
+    # Remove check-then-set, directly attempt insert
     user = User(
         username=user_data.username,
         email=user_data.email,
         full_name=user_data.full_name,
         role=user_data.role,
-        hashed_password=user_data.password  # Will be hashed by the system
     )
     from ..core.security import get_password_hash
     user.hashed_password = get_password_hash(user_data.password)
 
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "username" in error_msg:
+            raise HTTPException(status_code=400, detail="用户名已存在")
+        elif "email" in error_msg:
+            raise HTTPException(status_code=400, detail="邮箱已存在")
+        raise HTTPException(status_code=400, detail="数据重复")
+
     return user
 
 

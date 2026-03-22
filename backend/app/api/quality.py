@@ -9,7 +9,7 @@ from ..core.security import get_current_active_user
 from ..models.user import User
 from ..models.quality import QCRecord, QCStatus, QCType, QCStandard, UnqualifiedRecord, DispositionType
 from ..models.base_data import Material
-from ..models.production import ProductionOrder
+from ..models.production import ProductionOrder, ProductionOrderStatus
 from ..models.inventory import InventoryRecord
 
 router = APIRouter(prefix="/quality", tags=["质量管理"])
@@ -274,7 +274,7 @@ def get_qc_trace(
         # 追溯生产工单
         orders = db.query(ProductionOrder).filter(
             ProductionOrder.product_id == record.material_id,
-            ProductionOrder.status.in_(["completed", "qc_passed"])
+            ProductionOrder.status.in_([ProductionOrderStatus.COMPLETED, ProductionOrderStatus.QC_PASSED])
         ).all()
         trace_info["source_type"] = "production"
         trace_info["production_orders"] = orders
@@ -282,7 +282,7 @@ def get_qc_trace(
         # 追溯生产工单
         orders = db.query(ProductionOrder).filter(
             ProductionOrder.product_id == record.material_id,
-            ProductionOrder.status == "in_progress"
+            ProductionOrder.status == ProductionOrderStatus.IN_PROGRESS
         ).all()
         trace_info["source_type"] = "production"
         trace_info["production_orders"] = orders

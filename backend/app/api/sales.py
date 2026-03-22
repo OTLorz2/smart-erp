@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 from typing import List
 from datetime import datetime
 import uuid
@@ -347,15 +348,20 @@ def ship_order(
         quantity = item.get("quantity", 0)
         warehouse_id = item.get("warehouse_id", 1)
 
-        stock = db.query(WarehouseStock).filter(
-            WarehouseStock.material_id == material_id,
-            WarehouseStock.warehouse_id == warehouse_id
-        ).first()
+        # Atomic stock decrease - check stock availability first
+        stmt = (
+            update(WarehouseStock)
+            .where(
+                WarehouseStock.material_id == material_id,
+                WarehouseStock.warehouse_id == warehouse_id,
+                WarehouseStock.quantity >= quantity
+            )
+            .values(quantity=WarehouseStock.quantity - quantity)
+        )
+        result = db.execute(stmt)
 
-        if not stock or stock.quantity < quantity:
+        if result.rowcount == 0:
             raise HTTPException(status_code=400, detail=f"物料ID {material_id} 库存不足")
-
-        stock.quantity -= quantity
 
         record = InventoryRecord(
             record_no=f"OUT{datetime.now().strftime('%Y%m%d')}{uuid.uuid4().hex[:6].upper()}",

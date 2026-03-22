@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 from typing import List
 from datetime import datetime
 import uuid
@@ -347,14 +348,19 @@ def receive_order(
         quantity = item.get("quantity", 0)
         warehouse_id = item.get("warehouse_id", 1)
 
-        stock = db.query(WarehouseStock).filter(
-            WarehouseStock.material_id == material_id,
-            WarehouseStock.warehouse_id == warehouse_id
-        ).first()
+        # Atomic stock increase - try to update first, create if not exists
+        stmt = (
+            update(WarehouseStock)
+            .where(
+                WarehouseStock.material_id == material_id,
+                WarehouseStock.warehouse_id == warehouse_id
+            )
+            .values(quantity=WarehouseStock.quantity + quantity)
+        )
+        result = db.execute(stmt)
 
-        if stock:
-            stock.quantity += quantity
-        else:
+        if result.rowcount == 0:
+            # Stock record doesn't exist, create new one
             stock = WarehouseStock(
                 material_id=material_id,
                 warehouse_id=warehouse_id,
